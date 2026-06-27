@@ -11,6 +11,12 @@ const cookieOptions = {
   sameSite: 'none',
 };
 
+const clearSessionCookies = (res) => {
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
+  res.clearCookie('sessionId', cookieOptions);
+};
+
 export const registerUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -80,6 +86,9 @@ export const refreshUserSession = async (req, res, next) => {
     }
 
     if (new Date() > session.refreshTokenValidUntil) {
+      await Session.deleteOne({ _id: session._id });
+      clearSessionCookies(res);
+
       throw createHttpError(401, 'Session token expired');
     }
 
@@ -105,9 +114,7 @@ export const logoutUser = async (req, res, next) => {
       await Session.deleteOne({ _id: sessionId });
     }
 
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
-    res.clearCookie('sessionId', cookieOptions);
+    clearSessionCookies(res);
 
     res.status(204).send();
   } catch (error) {
